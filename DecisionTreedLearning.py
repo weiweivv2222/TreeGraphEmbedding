@@ -5,6 +5,8 @@ import pandas as pd
 from sklearn import tree, preprocessing
 from sklearn.model_selection import train_test_split, cross_val_score
 import  matplotlib.pyplot as plt
+import numpy as np
+import re
 
 
 def convert_cate_num_freq(df):
@@ -50,6 +52,9 @@ def get_numeric_df(df):
 
     return pd.concat([df_continuous_normalized, df_categorical_hotencoded], axis=1)
 
+def correlation(col1, col2):
+    return None
+
 
 dataFolder='C:\\Users\\xg16137\\OneDrive - APG\\My Documents\\Data\\'
 df = pd.read_csv(dataFolder+'dataForModelling.csv')
@@ -78,7 +83,7 @@ X = get_numeric_df(X)
 # tree.plot_tree(clf)
 
 # df_cat = df.drop('mostVisitTopic', axis=1).select_dtypes(include=['object', 'category'])
-# df_num = df.drop('mostVisitTopic', axis=1).select_dtypes(include=['number'])
+df_num = df.drop('mostVisitTopic', axis=1).select_dtypes(include=['number'])
 # scores = []
 # for cat in df_cat:
 #     temp = []
@@ -90,18 +95,46 @@ X = get_numeric_df(X)
 # for s in scores:
 #     print(s)
 # print(df_cat.columns)
-clf = tree.DecisionTreeClassifier(random_state=42).fit(df[['INCOME_PARTTIME_LATEST_JOB']],df[['SECTOR_MMS_LATEST_JOB']])
-plt.figure()
-o = tree.plot_tree(clf, max_depth=10)
-plt.show()
+# clf = tree.DecisionTreeClassifier(random_state=42).fit(df[['INCOME_PARTTIME_LATEST_JOB']],df[['SECTOR_MMS_LATEST_JOB']])
+clf = tree.DecisionTreeClassifier(random_state=42, min_samples_split=40).fit(df_num,df['SECTOR_MMS_LATEST_JOB'])
+# print(df_num.head())
+
+# plt.figure()
+# o = tree.plot_tree(clf, max_depth=10)
+# print(o)
+# plt.show()
+
+treePathTxt="C:\\Users\\xg16137\\PycharmProjects\\TreeGraphEmbedding2\\data\\tree.txt"
+treePathDot="C:\\Users\\xg16137\\PycharmProjects\\TreeGraphEmbedding2\\data\\tree.dot"
+dotfile = open(treePathDot, 'w')
+tree.export_graphviz(clf, out_file = dotfile)
+dotfile.close()
+
+file = open(treePathDot, 'r')#READING DOT FILE
+content = file.readlines()
+
+pattern ='->'
+indicesArrow = [i for i, x in enumerate(content) if re.search(pattern, x)]
+edges=list()
+for i in indicesArrow:
+    tempEdge= re.findall(r"[-+]?\d*\.\d+|\d+", content[i])
+    edges.append(np.asarray(tempEdge))
+
+G=nx.Graph()
+for i, idx in enumerate(edges):
+     G.add_edge((edges[i][0]).astype(int),(edges[i][1]).astype(int))
+     G = G.to_undirected()
+print(G.edges)
+
+node2vec= Node2Vec(G, dimensions=64, walk_length=6, num_walks=60, p=1,q=1)
+# Learn embedding
+model = node2vec.fit(window=10, min_count=1,batch_words=4)
+embeddings_dict={}
+for node in G.nodes:
+    embeddings_dict[node]=model.wv.get_vector(node)
+
+embeddings_df = pd.DataFrame(embeddings_dict)
+
+embeddings_df.to_csv (r'C:\Users\xg16137\PycharmProjects\TreeGraphEmbedding2\data\tree_embedding.csv' ,sep=',', encoding='utf-8' )
 
 
-# G=nx.Graph()
-# cross_points = []
-# tree_branches = [(0, 1), (1, 2)]
-# G.add_nodes_from(cross_points)
-# G.add_edges_from(tree_branches)
-# G = G.to_undirected()
-# node2vec= Node2Vec(G, dimensions=64, walk_length=3, num_walks=60, p=1,q=1)
-# # Learn embeddings
-# model = node2vec.fit(window=10, min_count=1,batch_words=4)
