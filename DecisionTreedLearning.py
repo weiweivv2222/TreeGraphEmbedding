@@ -102,10 +102,12 @@ df_num = df.drop('mostVisitTopic', axis=1).select_dtypes(include=['number'])
 #     print(s)
 # print(df_cat.columns)
 
+
 # test to see how it works, only experiment
 # clf = tree.DecisionTreeClassifier(random_state=42).fit(df[['INCOME_PARTTIME_LATEST_JOB']],df[['SECTOR_MMS_LATEST_JOB']])
 clf = tree.DecisionTreeClassifier(random_state=42, min_samples_split=40).fit(df_num,df['SECTOR_MMS_LATEST_JOB'])
 # print(df_num.head())
+
 
 # plt.figure()
 # o = tree.plot_tree(clf, max_depth=10)
