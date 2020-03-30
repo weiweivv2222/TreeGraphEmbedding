@@ -52,13 +52,15 @@ def get_numeric_df(df):
 
     return pd.concat([df_continuous_normalized, df_categorical_hotencoded], axis=1)
 
+# To compare the different correlations in the feature and make the right choice for the tree training
 def correlation(col1, col2):
     return None
 
-
+# load data
 dataFolder='C:\\Users\\xg16137\\OneDrive - APG\\My Documents\\Data\\'
 df = pd.read_csv(dataFolder+'dataForModelling.csv')
 
+# preprocessing
 del df['Unnamed: 0']
 del df['KLTID']
 del df['CD_PLAATS']
@@ -67,6 +69,8 @@ df['NETTOPENSION_IND'] = df['NETTOPENSION_IND'] == 'Y'
 df['OMS_GESLACHT'] = df['OMS_GESLACHT'] == 'Man'
 df['NEWSLETTER'] = df['NEWSLETTER'] == 'Y'
 df['PARTNER_AT_ABP'] = df['PARTNER_AT_ABP'] == 'Y'
+
+#################################################################################
 
 
 # print(df['mostVisitTopic'].value_counts())
@@ -82,6 +86,8 @@ X = get_numeric_df(X)
 # clf = clf.fit(X_train, y_train)
 # tree.plot_tree(clf)
 
+# for each of the categorical variable and the numerical variable train a Tree on every category-numerical pair and record the results
+
 # df_cat = df.drop('mostVisitTopic', axis=1).select_dtypes(include=['object', 'category'])
 df_num = df.drop('mostVisitTopic', axis=1).select_dtypes(include=['number'])
 # scores = []
@@ -95,6 +101,8 @@ df_num = df.drop('mostVisitTopic', axis=1).select_dtypes(include=['number'])
 # for s in scores:
 #     print(s)
 # print(df_cat.columns)
+
+# test to see how it works, only experiment
 # clf = tree.DecisionTreeClassifier(random_state=42).fit(df[['INCOME_PARTTIME_LATEST_JOB']],df[['SECTOR_MMS_LATEST_JOB']])
 clf = tree.DecisionTreeClassifier(random_state=42, min_samples_split=40).fit(df_num,df['SECTOR_MMS_LATEST_JOB'])
 # print(df_num.head())
@@ -104,15 +112,20 @@ clf = tree.DecisionTreeClassifier(random_state=42, min_samples_split=40).fit(df_
 # print(o)
 # plt.show()
 
+#################################################################################
+
+# save the tree
 treePathTxt="C:\\Users\\xg16137\\PycharmProjects\\TreeGraphEmbedding2\\data\\tree.txt"
 treePathDot="C:\\Users\\xg16137\\PycharmProjects\\TreeGraphEmbedding2\\data\\tree.dot"
 dotfile = open(treePathDot, 'w')
 tree.export_graphviz(clf, out_file = dotfile)
 dotfile.close()
 
+# read the tree file as a text
 file = open(treePathDot, 'r')#READING DOT FILE
 content = file.readlines()
 
+# read the text and transform it into a "networkx" graph
 pattern ='->'
 indicesArrow = [i for i, x in enumerate(content) if re.search(pattern, x)]
 edges=list()
@@ -126,6 +139,8 @@ for i, idx in enumerate(edges):
      G = G.to_undirected()
 print(G.edges)
 
+
+# use node2vec to embbed the graph
 node2vec= Node2Vec(G, dimensions=64, walk_length=6, num_walks=60, p=1,q=1)
 # Learn embedding
 model = node2vec.fit(window=10, min_count=1,batch_words=4)
@@ -133,8 +148,10 @@ embeddings_dict={}
 for node in G.nodes:
     embeddings_dict[node]=model.wv.get_vector(node)
 
+# get embeddings as a dataframe
 embeddings_df = pd.DataFrame(embeddings_dict)
 
+# save embeddings as csv file
 embeddings_df.to_csv (r'C:\Users\xg16137\PycharmProjects\TreeGraphEmbedding2\data\tree_embedding.csv' ,sep=',', encoding='utf-8' )
 
 
